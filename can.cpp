@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <random>
 
-bool stringInformation = false;
+bool stringInformation = true;
 
 std::mutex cout_mutex; // Mutex for protecting std::cout
 std::mutex queue_mutex; // Mutex for protecting the channel
@@ -107,6 +107,7 @@ void receiveCANMessage(int arbID, int dlc, std::deque<CANMessage>& channel) {
                 printCANMessage(message.arbID, message.dlc, message.data);
                 lock2.unlock();
 
+                // The stuff below is just for simulation purposes to "talk" between components
                 std::random_device rd;
                 std::mt19937 gen(rd());
                 std::uniform_int_distribution<> distrib(1, 500); // Generate a random number between 1 and 49
