@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <random>
 
-bool stringInformation = true;
+bool stringInformation = false;
 
 std::mutex cout_mutex; // Mutex for protecting std::cout
 std::mutex queue_mutex; // Mutex for protecting the channel
@@ -145,7 +145,7 @@ int main() {
 
     std::deque<CANMessage> channel; // Channel to store CAN messages
 
-    for(int i=0;i<50;i++){
+    for(int i=0;i<1;i++){
         sent += 8;
 
         // Generate CAN messages dynamically with random data
