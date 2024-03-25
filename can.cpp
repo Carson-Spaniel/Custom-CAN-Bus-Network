@@ -7,6 +7,8 @@
 #include <deque>
 #include <unistd.h>
 
+bool stringInformation = true;
+
 std::mutex cout_mutex; // Mutex for protecting std::cout
 std::mutex queue_mutex; // Mutex for protecting the channel
 
@@ -20,13 +22,20 @@ struct CANMessage {
     int data[8]; // Max 8 bytes of data
 };
 
+std::map<int, std::string> component;
+
 // Print out CAN message
 void printCANMessage(int arbID, int dlc, int* data) {
-    std::cout << "ArbID: " << std::hex << arbID;
-    std::cout << "\tDLC: " << std::hex << dlc;
-    std::cout << "\tData: ";
-    for (int i = 0; i < dlc; ++i) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << data[i] << " ";
+    if (stringInformation){
+        std::cout << component[arbID];
+    }
+    else{
+        std::cout << "ArbID: " << std::hex << arbID;
+        std::cout << "\tDLC: " << std::hex << dlc;
+        std::cout << "\tData: ";
+        for (int i = 0; i < dlc; ++i) {
+            std::cout << std::hex << std::setw(2) << std::setfill('0') << data[i] << " ";
+        }
     }
     std::cout << std::endl;
 }
@@ -92,7 +101,6 @@ void receiveCANMessage(int arbID, int expectedID, int dlc, std::deque<CANMessage
 }
 
 int main() {
-    std::map<int, std::string> component;
 
     // Define CAN components
     component[0x001] = "Engine Information";
@@ -100,6 +108,9 @@ int main() {
     component[0x003] = "ABS Information";
     component[0x004] = "Airbag Information";
     component[0x005] = "Climate Control Information";
+    component[0x006] = "Entertainment System Information";
+    component[0x007] = "Steering System Information";
+    component[0x008] = "Suspension System Information";
 
     std::deque<CANMessage> channel; // Channel to store CAN messages
 
