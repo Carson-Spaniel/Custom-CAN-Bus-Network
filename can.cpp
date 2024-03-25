@@ -6,6 +6,7 @@
 #include <mutex>
 #include <deque>
 #include <unistd.h>
+#include <random>
 
 bool stringInformation = true;
 
@@ -40,6 +41,21 @@ void printCANMessage(int arbID, int dlc, int* data) {
     std::cout << std::endl;
 }
 
+CANMessage generateCANMessage(int arbID, int dlc) {
+    CANMessage message;
+    message.arbID = arbID;
+    message.dlc = dlc;
+
+    std::random_device rd;  // Obtain a random number from hardware
+    std::mt19937 eng(rd()); // Seed the generator
+    std::uniform_int_distribution<> distr(0, 255); // Define the range
+
+    for (int i = 0; i < dlc; ++i) {
+        message.data[i] = distr(eng); // Generate random integer in the range [0, 255]
+    }
+    return message;
+}
+
 // Function to print the channel contents
 void printChannel(std::deque<CANMessage>& channel) {
     std::unique_lock<std::mutex> lock(queue_mutex); // Lock the channel mutex
@@ -69,8 +85,12 @@ void sendCANMessage(int arbID, int dlc, int* data, std::deque<CANMessage>& chann
 }
 
 // Simulated CAN receiving function
-void receiveCANMessage(int arbID, int expectedID, int dlc, std::deque<CANMessage>& channel) {
+void receiveCANMessage(int arbID, int dlc, std::deque<CANMessage>& channel) {
+    int expectedID = arbID;
     while (true) {
+        // if (received >= sent){
+        //     break;
+        // }
         // printChannel(channel);
         std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep for a short time to avoid busy-waiting
         std::unique_lock<std::mutex> lock(queue_mutex); // Lock the channel mutex
@@ -86,7 +106,19 @@ void receiveCANMessage(int arbID, int expectedID, int dlc, std::deque<CANMessage
                 std::cout << "Received CAN Message: ";
                 printCANMessage(message.arbID, message.dlc, message.data);
                 lock2.unlock();
-                break;
+
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<> distrib(1, 500); // Generate a random number between 1 and 49
+
+                // Generate random duration
+                int randomDuration = distrib(gen);
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(randomDuration)); // Sleep for a short time to avoid busy-waiting
+
+                CANMessage message1 = generateCANMessage(arbID, dlc);
+                std::thread senderThread1(sendCANMessage, message1.arbID, message1.dlc, message1.data, std::ref(channel));
+                senderThread1.join();
             } else {
                 channel.push_front(message);
             } 
@@ -101,7 +133,6 @@ void receiveCANMessage(int arbID, int expectedID, int dlc, std::deque<CANMessage
 }
 
 int main() {
-
     // Define CAN components
     component[0x001] = "Engine Information";
     component[0x002] = "Transmission Information";
@@ -114,57 +145,61 @@ int main() {
 
     std::deque<CANMessage> channel; // Channel to store CAN messages
 
-    // Simulated CAN messages
-    int message1[] = {0x001, 0x08, 0x00, 0x00, 0x3f, 0x00, 0x00, 0x00, 0x2a, 0x00};
-    int message2[] = {0x002, 0x04, 0x11, 0x22, 0x33, 0x44};
-    int message3[] = {0x003, 0x03, 0xaa, 0xbb, 0xcc};
-    int message4[] = {0x004, 0x06, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
-    int message5[] = {0x005, 0x02, 0x01, 0x02};
-    int message6[] = {0x006, 0x05, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e};
-    int message7[] = {0x007, 0x03, 0x55, 0x66, 0x77};
-    int message8[] = {0x008, 0x04, 0xaa, 0xbb, 0xcc, 0xdd};
+    for(int i=0;i<50;i++){
+        sent += 8;
 
-    // Create threads for sending and receiving
-    std::thread senderThread1(sendCANMessage, message1[0], message1[1], message1 + 2, std::ref(channel));
-    std::thread senderThread2(sendCANMessage, message2[0], message2[1], message2 + 2, std::ref(channel));
-    std::thread senderThread3(sendCANMessage, message3[0], message3[1], message3 + 2, std::ref(channel));
-    std::thread senderThread4(sendCANMessage, message4[0], message4[1], message4 + 2, std::ref(channel));
-    std::thread senderThread5(sendCANMessage, message5[0], message5[1], message5 + 2, std::ref(channel));
-    std::thread senderThread6(sendCANMessage, message6[0], message6[1], message6 + 2, std::ref(channel));
-    std::thread senderThread7(sendCANMessage, message7[0], message7[1], message7 + 2, std::ref(channel));
-    std::thread senderThread8(sendCANMessage, message8[0], message8[1], message8 + 2, std::ref(channel));
+        // Generate CAN messages dynamically with random data
+        CANMessage message1 = generateCANMessage(0x001, 0x08);
+        CANMessage message2 = generateCANMessage(0x002, 0x04);
+        CANMessage message3 = generateCANMessage(0x003, 0x08);
+        CANMessage message4 = generateCANMessage(0x004, 0x04);
+        CANMessage message5 = generateCANMessage(0x005, 0x02);
+        CANMessage message6 = generateCANMessage(0x006, 0x08);
+        CANMessage message7 = generateCANMessage(0x007, 0x08);
+        CANMessage message8 = generateCANMessage(0x008, 0x08);
 
-    // Increment the number of messages sent
-    sent = 8;
+        // Create threads for sending and receiving
+        std::thread senderThread1(sendCANMessage, message1.arbID, message1.dlc, message1.data, std::ref(channel));
+        std::thread senderThread2(sendCANMessage, message2.arbID, message2.dlc, message2.data, std::ref(channel));
+        std::thread senderThread3(sendCANMessage, message3.arbID, message3.dlc, message3.data, std::ref(channel));
+        std::thread senderThread4(sendCANMessage, message4.arbID, message4.dlc, message4.data, std::ref(channel));
+        std::thread senderThread5(sendCANMessage, message5.arbID, message5.dlc, message5.data, std::ref(channel));
+        std::thread senderThread6(sendCANMessage, message6.arbID, message6.dlc, message6.data, std::ref(channel));
+        std::thread senderThread7(sendCANMessage, message7.arbID, message7.dlc, message7.data, std::ref(channel));
+        std::thread senderThread8(sendCANMessage, message8.arbID, message8.dlc, message8.data, std::ref(channel));
 
-    sleep(1); // Wait for some time to allow messages to be sent
-    std::cout << "\n";
+        // Join threads to wait for them to finish
+        senderThread1.join();
+        senderThread2.join();
+        senderThread3.join();
+        senderThread4.join();
+        senderThread5.join();
+        senderThread6.join();
+        senderThread7.join();
+        senderThread8.join();
+    }
 
-    std::thread receiverThread1(receiveCANMessage, message1[0], 0x001, message1[1], std::ref(channel));
-    std::thread receiverThread2(receiveCANMessage, message2[0], 0x002, message2[1], std::ref(channel));
-    std::thread receiverThread3(receiveCANMessage, message3[0], 0x003, message3[1], std::ref(channel));
-    std::thread receiverThread4(receiveCANMessage, message4[0], 0x004, message4[1], std::ref(channel));
-    std::thread receiverThread5(receiveCANMessage, message5[0], 0x005, message5[1], std::ref(channel));
-    std::thread receiverThread6(receiveCANMessage, message6[0], 0x006, message6[1], std::ref(channel));
-    std::thread receiverThread7(receiveCANMessage, message7[0], 0x007, message7[1], std::ref(channel));
-    std::thread receiverThread8(receiveCANMessage, message8[0], 0x008, message8[1], std::ref(channel));
+    sent = sent/2;
+
+    // // Wait for some time to allow messages to be sent
+    // sleep(1);
+    // std::cout << "\n";
+
+    std::thread receiverThread1(receiveCANMessage, 0x001, 0x08, std::ref(channel));
+    std::thread receiverThread2(receiveCANMessage, 0x002, 0x04, std::ref(channel));
+    std::thread receiverThread3(receiveCANMessage, 0x003, 0x08, std::ref(channel));
+    std::thread receiverThread4(receiveCANMessage, 0x004, 0x04, std::ref(channel));
+    std::thread receiverThread5(receiveCANMessage, 0x005, 0x02, std::ref(channel));
+    std::thread receiverThread6(receiveCANMessage, 0x006, 0x08, std::ref(channel));
+    std::thread receiverThread7(receiveCANMessage, 0x007, 0x08, std::ref(channel));
+    std::thread receiverThread8(receiveCANMessage, 0x008, 0x08, std::ref(channel));
     
-    // Join threads to wait for them to finish
-    senderThread1.join();
-    senderThread2.join();
-    senderThread3.join();
-    senderThread4.join();
-    senderThread5.join();
-    senderThread6.join();
-    senderThread7.join();
-    senderThread8.join();
-
     receiverThread1.join();
-    receiverThread2.join();
+    receiverThread2.join();    
     receiverThread3.join();
     receiverThread4.join();
     receiverThread5.join();
-    receiverThread6.join();
+    receiverThread6.join();    
     receiverThread7.join();
     receiverThread8.join();
 
