@@ -6,7 +6,7 @@
 #include <mutex>
 #include <deque>
 #include <unistd.h>
-#include <random>
+#include <random> // Only for simulation purposes
 
 bool stringInformation = true;
 
