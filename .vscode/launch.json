@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/carso/Github/Custom-CAN-Bus-Network",
-      "program": "c:/Users/carso/Github/Custom-CAN-Bus-Network/build/Debug/outDebug",
+      "cwd": "c:/Users/carso/Github/Custom-CAN",
+      "program": "c:/Users/carso/Github/Custom-CAN/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
